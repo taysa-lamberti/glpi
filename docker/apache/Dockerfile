@@ -1,10 +1,12 @@
 FROM docker.io/centos
 
-ENV VERSION 9.4.0
+ENV VERSION 9.4.4
 
 ENV GLPI_LANG pt_BR
 
 ENV MARIADB_HOST mariadb
+
+ENV MARIADB_PORT 3306
 
 ENV MARIADB_DATABASE glpi
 
@@ -12,10 +14,9 @@ ENV MARIADB_USER glpi
 
 ENV MARIADB_PASSWORD glpi
 
+ENV PLUGINS all
+
 RUN curl 'https://setup.ius.io/' | sh 
-#yum -y install epel-release \
-#	&& yum -y install https://centos7.iuscommunity.org/ius-release.rpm \
-#	&& rpm --import /etc/pki/rpm-gpg/IUS-COMMUNITY-GPG-KEY 
 
 RUN yum -y install \
 		mod_php72u \
@@ -23,6 +24,7 @@ RUN yum -y install \
 		php72u-mysqlnd
 
 RUN yum -y install \
+		bzip2 \
 		httpd mod_ssl \
 		php72u-json \
 		php72u-mbstring \
@@ -37,8 +39,11 @@ RUN yum -y install \
 		php72u-opcache \
 		php72u-apcu \
 		php72u-xmlrpc \
+		php72u-intl \
 		openssl \
+		jq \
 		php-pear-CAS \
+		mariadb \
 	&& yum -y clean all \
 	&& rm -rf /var/cache/yum
 
@@ -46,13 +51,13 @@ ADD php.d /etc/php.d
 
 ADD conf.d /etc/httpd/conf.d
 
-ADD entrypoint.sh /
+ADD configure.sh backup.sh plugins.sh /
 
-RUN chmod 755 /entrypoint.sh
+RUN chmod 755 /configure.sh /backup.sh /plugins.sh
 
 VOLUME ["/var/www/html"]
 
 EXPOSE 80/tcp 443/tcp
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["httpd", "-D", "FOREGROUND"]
 
